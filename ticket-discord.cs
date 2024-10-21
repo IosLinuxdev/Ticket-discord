@@ -10,21 +10,22 @@ namespace NovaLifePlugin
     {
         private readonly DiscordSocketClient _discordClient;
         private readonly string _configFile = "logbook.json";
+        private LogbookConfig _config; // Rendre la config accessible à toute la classe
 
         public TicketLogbookPlugin()
         {
             _discordClient = new DiscordSocketClient();
         }
 
-        public void Initialize()
+        public async void Initialize()
         {
             // Load configuration from JSON file
             var configFile = File.ReadAllText(_configFile);
-            var config = JsonSerializer.Deserialize<LogbookConfig>(configFile);
+            _config = JsonSerializer.Deserialize<LogbookConfig>(configFile);
 
             // Set up Discord client
-            _discordClient.LoginAsync(TokenType.Bot, config.Token);
-            _discordClient.StartAsync();
+            await _discordClient.LoginAsync(TokenType.Bot, _config.Token);
+            await _discordClient.StartAsync();
 
             // Listen for ticket creation events
             EventManager.AddListener<TicketCreatedEvent>(OnTicketCreated);
@@ -44,8 +45,8 @@ namespace NovaLifePlugin
                 .AddField("Description", ticket.Description);
 
             // Send the embed to the logbook channel
-            var channel = _discordClient.GetChannel(config.ChannelId);
-            channel.SendMessageAsync(embed: embed);
+            var channel = _discordClient.GetChannel(_config.ChannelId) as IMessageChannel;
+            channel?.SendMessageAsync(embed: embed.Build());
         }
     }
 
